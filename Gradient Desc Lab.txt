@@ -1,0 +1,20 @@
+# Implement the following functions
+
+# Activation (sigmoid) function
+def sigmoid(x):
+    return ( 1/(1 + np.exp(-x)) )   # x here is the score of the linear equation
+
+# Output (prediction) formula
+def output_formula(features, weights, bias):
+    prob_y_hat = 0
+    for i in range(len(weights)):
+         prob_y_hat += sigmoid(weights[i] * features[i] + bias)
+    return(prob_y_hat)
+    
+# Error (log-loss) formula
+def error_formula(y, output):
+    y 
+
+# Gradient descent step
+def update_weights(x, y, weights, bias, learnrate):
+    pass

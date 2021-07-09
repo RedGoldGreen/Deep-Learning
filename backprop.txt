@@ -1,0 +1,116 @@
+import numpy as np
+from data_prep import features, targets, features_test, targets_test
+
+np.random.seed(21)
+
+def sigmoid(x):
+    """
+    Calculate sigmoid
+    """
+    return 1 / (1 + np.exp(-x))
+
+
+# Hyperparameters
+n_hidden = 2  # number of hidden units
+epochs = 900
+learnrate = 0.005
+
+n_records, n_features = features.shape
+
+last_loss = None
+# Initialize weights
+weights_input_hidden = np.random.normal(scale=1 / n_features ** .5,
+                                        size=(n_features, n_hidden))
+weights_hidden_output = np.random.normal(scale=1 / n_features ** .5,
+                                         size=n_hidden)
+
+# 6 features, gpa, gre, 4 ranks
+#print ("weights_input_hidden", weights_input_hidden ) # 6 x 2, size=(n_features, n_hidden)
+#print ("weights_input_hidden shape", np.shape(weights_input_hidden) )
+#print ("weights_hidden_output", weights_hidden_output )  # (2,), n_hidden (one weight each unit)
+#print ("weights_hidden_output shape", np.shape(weights_hidden_output) )
+for e in range(epochs):
+    del_w_input_hidden = np.zeros(weights_input_hidden.shape)
+    del_w_hidden_output = np.zeros(weights_hidden_output.shape)
+    for x, y in zip(features.values, targets):
+        #print ("x shape", x.shape)  # (6,)
+        ## Forward pass ##
+        # TODO: Calculate the output
+        # below output of hidden layer is 1x2 - a scalar (z value) from each unit
+        hidden_input =  np.dot(x, weights_input_hidden) # (6,) dot 6x2 = (2,)
+        #print ("hidden_input shape", np.shape(hidden_input))  # (2,)
+        hidden_output = sigmoid(hidden_input)     # NO! it's (2,) ! 1x2  (1 value from each node)
+        #print ("hidden_output", hidden_output)
+        
+        #print ("hidden_output", hidden_output)
+        #print ("hidden_output shape", np.shape(hidden_output))  # (2,)
+        
+        # below 1x2 dot 1x2 ??? output is scalar!!! - does numpy transpose? yes.
+        # it's a scalar (z value) from the output unit
+        # 
+        #  print ("h_o dot, w_h_o", np.dot(hidden_output, weights_hidden_output))
+        # Below: (2,) dot  (2,) = scalar
+        output = sigmoid(np.dot(hidden_output, weights_hidden_output)) # a scalar
+        #print ("output:", output)
+        ## Backward pass ##
+        # TODO: Calculate the network's prediction error
+        error = y - output # a scalar
+        #print ("error", error) 
+        # TODO: Calculate error term for the output unit
+        output_error_term = error * output * (1 - output) # scalar * scalar * scalar=scalar
+        #print ("output_error_term", output_error_term)
+
+        ## propagate errors to hidden layer
+
+        # TODO: Calculate the hidden layer's contribution to the error
+        #! below:  scalar dot (2,) = (2,) !!!! 
+        hidden_error = np.dot(output_error_term, weights_hidden_output) 
+        #print ("hidden_error", hidden_error)
+        #print ("hidden_error shape", np.shape(hidden_error))
+        # TODO: Calculate the error term for the hidden layer
+        # below: scalar dot (2,) = (2,) !!!! - they use diff formula
+        hidden_error_term = np.dot(output_error_term, weights_hidden_output) * \
+                    hidden_output * (1 - hidden_output) # 1x2
+        #print ("hidden_error_term shape", np.shape(hidden_error_term))   
+        print ("hidden_error_term", hidden_error_term)
+        
+        # TODO: Update the change in weights
+        #! Below: # scalar * scalar * (2,) = (2,)
+        del_w_hidden_output += learnrate * output_error_term * hidden_output
+        #print ("del_w_h_out shape", np.shape(del_w_hidden_output))
+        #! Below: scalar * (2,) * 
+        #print ("x[:,None] shape", np.shape(x[:,None]))
+        #! Below (I think): scalar * (2,) = (2,) * (6,1)  = ??? (6, 2) ?????
+        print ("learnrate * hidden_error_term ", learnrate * hidden_error_term )
+        print ("x...", x[:,None])
+        del_w_input_hidden += learnrate * hidden_error_term * x[:,None]
+        
+        print ("shape del_w_inp_hidden", np.shape(del_w_input_hidden))
+        print ("del_w_input_hidden", del_w_input_hidden)
+    # TODO: Update weights  (don't forget to division by n_records or number of samples)
+    weights_input_hidden += del_w_input_hidden/n_records
+    #print ("w_i_hid", weights_input_hidden)   # 6x2
+    #print ("del_w_input_hidden", del_w_input_hidden)
+
+    weights_hidden_output += del_w_hidden_output/n_records
+    #print ("w_h_out", weights_hidden_output)
+    
+    # Printing out the mean square error on the training set
+    if e % (epochs / 10) == 0:
+        hidden_output = sigmoid(np.dot(x, weights_input_hidden))
+        out = sigmoid(np.dot(hidden_output,
+                             weights_hidden_output))
+        loss = np.mean((out - targets) ** 2)
+
+        if last_loss and last_loss < loss:
+            print("Train loss: ", loss, "  WARNING - Loss Increasing")
+        else:
+            print("Train loss: ", loss)
+        last_loss = loss
+
+# Calculate accuracy on test data
+hidden = sigmoid(np.dot(features_test, weights_input_hidden))
+out = sigmoid(np.dot(hidden, weights_hidden_output))
+predictions = out > 0.5
+accuracy = np.mean(predictions == targets_test)
+print("Prediction accuracy: {:.3f}".format(accuracy))
